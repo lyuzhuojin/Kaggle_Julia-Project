@@ -37,7 +37,7 @@ end
 imageSize = 400 # 20 x 20 pixel
 
 #Set location of data files, folders
-path = D:/LZJ/boston university/mssp/675-676/kaggle_Julia/data
+path = "D:/LZJ/boston university/mssp/675-676/kaggle_Julia/data"
 
 #Read information about training data , IDs.
 labelsInfoTrain = readtable("$(path)/trainLabels.csv")
