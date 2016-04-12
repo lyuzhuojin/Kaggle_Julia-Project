@@ -1,0 +1,75 @@
+
+########## random forest ############
+
+train_set <- read.csv("train.csv")
+# for training dataset, split the data for sm_train and sm_test
+train_set <- train_set[,c(2:402)]
+set.seed(1)
+train <- sample(dim(train_set)[1],dim(train_set)[1]/2)
+sm_train <- train_set[train,]
+test <- -sample(dim(train_set)[1],dim(train_set)[1]/2)
+sm_test <- train_set[test,]
+sm_train_x <- sm_train[,-1]
+sm_train_y <- sm_train[,1]
+sm_test_x <- sm_test[,-1]
+sm_test_y <- sm_test[,1]
+
+
+library(randomForest)
+rf.out <- randomForest(x = sm_train_x, y = sm_train_y, mtry = 35, importance = TRUE)
+pred.rf <- predict(rf.out,newdata=sm_test_x)
+pred.out <- as.data.frame(pred.rf)
+pred.out <- cbind(pred.out,sm_test_y)
+pred.out$correct <- c(rep(0,length(pred.out)))
+for(i in 1:3142){
+  ifelse(pred.out$pred.rf[i] == pred.out$sm_test_y[i], pred.out$correct[i] <- 1, pred.out$correct[i] <- 0)
+}
+correctrate <- sum(pred.out$correct)/3142 
+correctrate 
+# mtry = 10, correctrate = 0.7078294
+# mtry = 20, correctrate = 0.71324
+# mtry = 25, correctrate = 0.7167409
+# mtry = 30, correctrate = 0.718014
+# mtry = 35, correctrate = 0.7196053 ***
+# mtry = 40, correctrate = 0.7151496
+
+# use it to predict actual test dataset
+train_set <- read.csv("train.csv")
+test_set <- read.csv("test.csv")
+train_set_x <- train_set[,c(3:402)]
+train_set_y <- train_set[,2]
+test_set_x <- test_set[,-1]
+rf.pred <- randomForest(x = train_set_x, y = train_set_y, mtry = 35, importance = TRUE)
+prediction <- predict(rf.pred,newdata=test_set_x)
+prediction <- as.data.frame(prediction)
+prediction <- cbind(test_set$ID, prediction)
+names(prediction) <- c("ID","prediction")
+write.csv(prediction, file = "pred_randomforest.csv")
+# mtry = 20, correctrate = 0.48135
+# mtry = 35, correctrate = 0.48757 ***
+
+
+########## boosting ############
+
+library(gbm)
+train_set <- read.csv("train.csv")
+# for training dataset, split the data for sm_train and sm_test
+train_set <- train_set[,c(2:402)]
+set.seed(1)
+train <- sample(dim(train_set)[1],dim(train_set)[1]/2)
+sm_train <- train_set[train,]
+test <- -sample(dim(train_set)[1],dim(train_set)[1]/2)
+sm_test <- train_set[test,]
+sm_train_x <- sm_train[,-1]
+sm_train_y <- sm_train[,1]
+sm_test_x <- sm_test[,-1]
+sm_test_y <- sm_test[,1]
+
+
+set.seed(1)
+boost.out <- gbm(label ~ ., data = sm_train, distribution = "gaussian", n.trees = 5000)
+prediction <- predict(boost.out, newdata = sm_test, n.trees = 5000)
+prediction <- as.data.frame(prediction)
+
+# ???????? predictions are all numbers????? 
+
