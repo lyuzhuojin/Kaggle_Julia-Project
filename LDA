@@ -1,0 +1,23 @@
+train <- read.csv("train.csv")
+dim(train)
+
+# get train and test sample
+index <- sample(6283,size=6283*0.9)
+train_set <- train[index,]
+test_set <- train[-index,]
+
+## perform lda
+library(MASS)
+train_set <- train_set[, -1]
+test_set <- test_set[, -1]
+lda.out <- lda(Class~.,data=train_set)
+
+lda.pred <- predict(lda.out, test_set)
+
+names(lda.pred)
+lda.class <- lda.pred$class
+compare <- data.frame(lda.class, test_set$Class)
+names(compare) <- c("pred", "true")
+
+accuracy <- sum(compare$pred == compare$true)/nrow(test_set)
+accuracy
