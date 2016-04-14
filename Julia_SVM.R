@@ -31,6 +31,14 @@ svm.linear <- svm(s_train_x,s_train_y, data = dat.train, kernel = "linear",cost=
 plot(svm.linear, s_train_x)
 
 p1 = table(predict = predict(svm.linear, s_train_x), truth = s_train_y) 
+p1 = as.data.frame(p1)
+# There must be a big here, there are 784,000 rows. Remove duplicates next time
+# it is run
+p1$truth = as.numeric(p1$truth)
+p1$truth = as.numeric(p1$predict)
+p1$diff = (p1$predict - p1$truth)
+p1$correct[p1$diff == 0] = "correct"
+p1$correct[p1$diff != 0] = "wrong" 
 
 #  polynomial kernel of degree 3.
 svm.poly = svm(s_train_x, s_train_y, kernel = "polynomial",degree=3, cost = 10)
