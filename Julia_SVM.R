@@ -40,7 +40,7 @@ p2 = table(predict = predict(svm.poly, s_train_x), truth = s_train_y)
 # radial kernel and a gamma of 1.
 svm.radial <- svm(s_train_x, s_train_y,kernel = "radial", gamma = 1, cost = 10)
 plot(svm.radial, s_train_x)
-table(predict = predict(svm.radial, s_train_x), truth = s_train_y)
+p3 = table(predict = predict(svm.radial, s_train_x), truth = s_train_y)
 
 
 ## The kernels above are very slow, even if the sized down data is used.
