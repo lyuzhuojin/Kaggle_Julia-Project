@@ -1,0 +1,72 @@
+train <- read.csv("train.csv", header = T, stringsAsFactors = F)
+test <- read.csv("test.csv", header = T, stringsAsFactors = F)
+#-------------------------------------------------------------------------------------------------
+trainr <- read.csv("resizedTrain.csv", header = T, stringsAsFactors = F)
+testr <- read.csv("resizedTest.csv", header = T, stringsAsFactors = F)
+train.label <- read.csv("trainLabels.csv", header = T, stringsAsFactors = F)
+library(class)
+#-------------------------------------------------------------------------------------------------
+
+#cross-validation to choose the optimal k---------------------------------------------------------
+set.seed(10)
+K <- 10
+cv.err <- integer(K)
+for(k in 1:K){
+  # compute knn.cv (LOOCV)
+  knnk <- knn.cv(trainr[,-1], train.label[,2], k=k)
+  # average accuracy
+  cv.err[k] <-  1- mean(as.character(knnk) == train.label[,2])
+}
+
+plot(cv.err, type='b')
+lines(cv.err, type='b')#k=1 min CV error
+
+knn.pred <- knn(trainr[,-1], testr[,-1], as.factor(train.label[,2]), k=1)#k=1
+RKNN <- as.character(knn.pred)
+
+#R result------------------------------------------------------------------------------------------
+result.knn1 <- data.frame(ID = test$ID, Class = RKNN)
+write.csv(result.knn1, "RTestKnnSubmit.csv")
+
+###Diagnosis---------------------------------------------
+train.class <- as.data.frame(table(train.label$Class))
+library(ggplot2)
+ggplot(train.class,aes(x=Freq))+geom_histogram(binwidth=50)+
+  labs(x="Total number of objects(characters/numbers) in each class")+
+  ggtitle("Histogram of Object Count Per Class in training set")
+
+knn.train <- knn.cv(trainr[,-1], train.label[,2], k=1)
+knn.train.class <- as.data.frame(table(as.character(knn.train)))
+ggplot(knn.train.class,aes(x=Freq))+geom_histogram(binwidth=50)+
+  labs(x="Total number of objects(characters/numbers) in each class")+
+  ggtitle("Histogram of Object Count Per Class(KNN results tested on training set)")
+
+knn.comp <- data.frame(ID=train.class$Var1, Actual=train.class$Freq, KNN=knn.train.class$Freq)
+knn.comp$Difference <- knn.comp$Actual-knn.comp$KNN
+knn.comp$Percentage <- abs(knn.comp$Difference)/knn.comp$Actual
+#I and l; O and 0;
+hist(knn.comp$Difference)
+hist(knn.comp$Percentage)
+#Highest accurate rate: T, F...
+#Lowest accurate rate: z,q,Z,Q...
+
+##sperate numbers and characters
+knn.comp <- knn.comp[order(knn.comp$ID),]
+knn.comp.num <- knn.comp[1:10,]
+knn.comp.char <- knn.comp[11:nrow(knn.comp),]
+
+mean(knn.comp.num$Percentage)
+mean(knn.comp.char$Percentage)
+sqrt(var(knn.comp.num$Percentage))
+sqrt(var(knn.comp.char$Percentage))
+
+knn.comp.num$type <- "number"
+knn.comp.char$type <- "character"
+knn.comp.comb <- rbind(knn.comp.num,knn.comp.char)
+ggplot(knn.comp.comb,aes(x=Percentage,colour=type))+ geom_density()+
+  labs(x="Error Percentage((# of errors)/(total number per class)")+
+  ggtitle("Comparison of KNN Performance between Characters and Numbers")
+
+##complete list 
+knn.comp2 <- data.frame(train.label, KNNClass=as.character(knn.train))
+knn.comp3 <- subset(knn.comp2, Class!=KNNClass)
