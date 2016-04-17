@@ -1,0 +1,30 @@
+#SVM-----------------------------------------------------------------------------------------------
+trainr <- read.csv("resizedTrain.csv", header = T, stringsAsFactors = F)
+testr <- read.csv("resizedTest.csv", header = T, stringsAsFactors = F)
+train.label <- read.csv("trainLabels.csv", header = T, stringsAsFactors = F)
+#scale and center data-----------------------------------------------------------------------
+t.trainr <- t(trainr)
+t.testr <- t(testr)
+t.trainr1 <- t.trainr[2:nrow(t.trainr),]
+t.testr1 <- t.testr[2:nrow(t.testr),]
+
+t.trainr1 <- scale(t.trainr1,center=T, scale=T)
+t.testr1 <- scale(t.testr1,center=T, scale=T)
+
+train2 <- as.data.frame(t(t.trainr1))
+train2 <- data.frame(ID=trainr$ID, train2)
+train.svm <- data.frame(train2, Class=train.label$Class)
+test2 <- as.data.frame(t(t.testr1))
+test2 <- data.frame(ID=testr$ID, test2)
+test.svm <- test2
+set.seed(10)
+cost_grid <- 10^seq(-2, 1, by = 0.25)
+tune.poly = tune(svm, Class ~ ., data = cv.train, 
+                 kernel = "polynomial", degree = 2, 
+                 ranges = list(cost = cost_grid))
+summary(tune.poly)
+svm.poly = svm(Class ~ ., data = cv.train, kernel = "polynomial",degree=2, cost = 10)
+1-mean(predict(svm.poly, cv.train)!=cv.train$Class)
+1-mean(predict(svm.poly, cv.test)!=cv.test$Class)
+pred.test <- predict(svm.poly, test.svm)
+poly.result <- data.frame(ID=test.svm$ID,Class=as.character(pred.test))
