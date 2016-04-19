@@ -1,0 +1,74 @@
+library(h2o)
+library(ggplot2)
+set.seed(1)
+train <- read.csv("train.csv")
+test_set <- read.csv("test.csv")
+index <- sample(6283,size=6283*0.5)
+train_set <- train[index,]
+test_set <- train[-index,]
+
+train_set <- train_set[,c(2:402)]
+test_set <- test_set[,c(2:402)]
+localH2O = h2o.init(max_mem_size = '6g', nthreads = -1)
+train_h2o <- as.h2o(train_set)
+test_h2o <- as.h2o(test_set)
+
+model <- 
+  h2o.deeplearning(x = 2:401,  # column numbers for predictors
+                   y = 1,   # column number for label
+                   training_frame = train_h2o, # data in H2O format
+                   activation = "RectifierWithDropout", # or 'Tanh'
+                   input_dropout_ratio = 0.2, # % of inputs dropout
+                   hidden_dropout_ratios = c(0.5), # % for nodes dropout
+                   balance_classes = TRUE, 
+                   hidden = c(500), # three layers of 50 nodes
+                   epochs = 100) # max. no. of epochs
+
+h2o_test <- h2o.predict(model, test_h2o)
+df_test <- as.data.frame(h2o_test)
+
+pred <- data.frame(test_set$label, df_test$predict)
+names(pred) <- c("true", "predict")
+pred$predict <- factor(pred$predict, levels = levels(pred$true))
+sum(pred$true == pred$predict)/dim(test_set)[1]
+
+#=========== RectifierWithDropout ==================
+# hidden = c(100,100,100), correctrate = 0.3052464
+# hidden = c(400,200,200), correctrate = 0.5389507
+# hidden = c(800,400), correctrate = 0.6232114
+# hidden = c(400, 400), correctrate = 0.5993641 
+# hidden = c(400, 300), correctrate = 0.6041335 **
+# hidden = c(400, 250), correctrate = 0.6057234 ***
+# hidden = c(200), correctrate = 0.5802862
+# hidden = c(300), correctrate = 0.5993641 
+# hidden = c(400), correctrate = 0.6279809 ***
+# hidden = c(500), correctrate = 0.6661367 ****
+
+
+# ============= diagnose for hidden = c(500) ================#
+pred <- cbind(train[-index,]$ID, pred)
+names(pred) <- c("ID", "true", "predict")
+write.csv(pred, file = "Comparison_Neural.network.csv")
+
+pred$predict <- factor(pred$predict, levels = levels(pred$true))
+pred.correct <- pred[pred$true == pred$predict,]
+pred.incorrect <- pred[pred$true != pred$predict,]
+options(digits = 1)
+summary(pred$true)
+summary(pred.incorrect$true)/(summary(pred$true))
+error.rate <- as.data.frame(summary(pred.incorrect$true)/(summary(pred$true)))
+names(error.rate) <- c("error.rate")
+
+
+
+# ============= for test data set ============== #
+test <- read.csv("test.csv")
+test_h2o <- as.h2o(test)
+h2o_test <- h2o.predict(model, test_h2o)
+df_test <- as.data.frame(h2o_test)
+pred <- data.frame(test$ID, df_test$predict)
+names(pred) <- c("ID", "Class")
+write.csv(pred, file = "pred.csv")
+
+# hidden = c(500), correctrate = 0.64202
+# hidden = c(400), correctrate = 0.63187
